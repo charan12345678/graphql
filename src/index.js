@@ -10,20 +10,35 @@ import {
   ApolloProvider,
   gql,
 } from "@apollo/client";
+import { persistCache } from 'apollo3-cache-persist';
+import localForage from "localforage";
+import { GET_CHARACTERS } from './queries';
 
-const client = new ApolloClient({
-  uri: "https://rickandmortyapi.com/graphql",
-  cache: new InMemoryCache({
-    typePolicies: {
-      characters : {
-        results : {
-          keyFields:["id", "name"],
-        }
+const cache = new InMemoryCache();
+
+const init = async () => {
+   await persistCache({
+    cache,
+    storage: localForage,
+   });
+
+   const client = new ApolloClient({
+    uri: "https://rickandmortyapi.com/graphql",
+    cache
+  });
+
+  /* Initialize the local state */
+  try {
+    cache.readQuery({
+      query: GET_CHARACTERS
+    });
+  } catch (error) {
+    cache.writeData({
+      data: {
+        selectedCharacters: []
       }
-      
-    },
-  }),
-});
+    });
+  }
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -33,6 +48,10 @@ root.render(
     </ApolloProvider>
   </React.StrictMode>
 );
+
+};
+
+init();
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
